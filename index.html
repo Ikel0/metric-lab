@@ -25,26 +25,23 @@
     <footer>CSV → SQLite → modèle dimensionnel → métriques <a href="https://github.com/Ikel0/metric-lab">Code ↗</a></footer>
   </main>
   <script>
-    const preview = {
-      summary: { orders: 6, revenue: 965, aov: 160.83 },
-      daily: [
-        { order_date: '2026-07-01', revenue: 345, orders: 2, avg_order_value: 172.5 },
-        { order_date: '2026-07-02', revenue: 230, orders: 2, avg_order_value: 115 },
-        { order_date: '2026-07-03', revenue: 390, orders: 2, avg_order_value: 195 }
-      ]
-    };
+    if (window.location.protocol === 'file:') {
+      window.location.replace('https://metric-lab-ikel.onrender.com');
+    }
     const format = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
-    function render(data, label) {
+    function render(data) {
       document.getElementById('orders').textContent = data.summary.orders;
       document.getElementById('revenue').textContent = format.format(data.summary.revenue) + ' €';
       document.getElementById('aov').textContent = format.format(data.summary.aov) + ' €';
       document.getElementById('daily').innerHTML = data.daily.map((item) => `<div><span>${item.order_date}</span><b>${format.format(item.revenue)} €</b><small>${item.orders} commandes · panier ${format.format(item.avg_order_value)} €</small></div>`).join('');
-      document.getElementById('mode').textContent = label;
+      document.getElementById('mode').textContent = 'Données calculées par le pipeline.';
     }
     fetch('/api/metrics')
       .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((data) => render(data, 'Données calculées par le pipeline.'))
-      .catch(() => render(preview, 'Mode aperçu : lance le serveur pour utiliser le pipeline.'));
+      .then(render)
+      .catch(() => {
+        document.getElementById('mode').textContent = 'Le service est temporairement indisponible. Réessaie dans un instant.';
+      });
   </script>
 </body>
 </html>
