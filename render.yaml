@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: metric-lab-ikel
+    runtime: docker
+    plan: free
+    healthCheckPath: /

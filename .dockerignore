@@ -1,0 +1,4 @@
+.git/
+warehouse.db
+__pycache__/
+*.py[cod]
