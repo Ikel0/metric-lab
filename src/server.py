@@ -4,7 +4,7 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.request import Request, urlopen
-from pipeline import ROOT, build, metrics
+from pipeline import ROOT, SourceValidationError, build, metrics, quality_report
 
 def market_context():
     url = "https://api.frankfurter.dev/v2/rates?base=EUR&quotes=USD,GBP,CHF&providers=ECB"
@@ -22,10 +22,15 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path=="/health": return self.send_json({"status":"ok","service":"metric-lab","warehouse_ready":(ROOT / "warehouse.db").exists()})
         if self.path=="/api/metrics": return self.send_json(metrics())
+        if self.path=="/api/quality": return self.send_json(quality_report())
         if self.path=="/api/market-context": return self.send_json(market_context())
         super().do_GET()
     def do_POST(self):
-        if self.path == "/api/rebuild": return self.send_json({"status":"rebuilt", **build()}, HTTPStatus.CREATED)
+        if self.path == "/api/rebuild":
+            try:
+                return self.send_json({"status":"rebuilt", **build()}, HTTPStatus.CREATED)
+            except SourceValidationError as error:
+                return self.send_json({"status":"rejected", "quality":error.report}, HTTPStatus.UNPROCESSABLE_ENTITY)
         return self.send_json({"error":"unknown endpoint"}, HTTPStatus.NOT_FOUND)
 def main():
     parser=argparse.ArgumentParser();parser.add_argument("--port",type=int,default=int(os.getenv("PORT","8000")));args=parser.parse_args();build();

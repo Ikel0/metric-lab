@@ -27,6 +27,11 @@
       <h2>Où se crée le chiffre d’affaires.</h2>
       <div id="categories" class="daily"></div>
     </section>
+    <section class="categories-section">
+      <p class="tag">QUALITY GATE</p>
+      <h2>Le lot doit être cohérent avant de construire le mart.</h2>
+      <div id="quality" class="daily"></div>
+    </section>
     <section class="categories-section"><p class="tag">CONTEXTE EXTERNE</p><h2>Les taux de change du jour.</h2><p id="market-context" class="mode">Chargement du contexte marché…</p></section>
     <footer>CSV → SQLite → modèle dimensionnel → métriques <a href="https://github.com/Ikel0/metric-lab">Code ↗</a></footer>
   </main>
@@ -35,17 +40,19 @@
       window.location.replace('https://metric-lab-ikel.onrender.com');
     }
     const format = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
-    function render(data) {
+    function render(data, quality) {
       document.getElementById('orders').textContent = data.summary.orders;
       document.getElementById('revenue').textContent = format.format(data.summary.revenue) + ' €';
       document.getElementById('aov').textContent = format.format(data.summary.aov) + ' €';
       document.getElementById('daily').innerHTML = data.daily.map((item) => `<div><span>${item.order_date}</span><b>${format.format(item.revenue)} €</b><small>${item.orders} commandes · panier ${format.format(item.avg_order_value)} €</small></div>`).join('');
       document.getElementById('categories').innerHTML = data.categories.map((item) => `<div><span>${item.category}</span><b>${format.format(item.revenue)} €</b><small>revenu cumulé par catégorie</small></div>`).join('');
-      document.getElementById('mode').textContent = 'Données calculées par le pipeline.';
+      const passed = quality.checks.filter((check) => check.status === 'passed').length;
+      document.getElementById('quality').innerHTML = `<div><span>${quality.status === 'passed' ? 'lot accepté' : 'lot rejeté'}</span><b>${passed}/${quality.checks.length}</b><small>contrôles passés · empreinte ${quality.source_fingerprint}</small></div>${quality.checks.map((check) => `<div><span>${check.status === 'passed' ? '✓' : '!' } ${check.name}</span><b>${check.status === 'passed' ? 'ok' : 'à corriger'}</b><small>${check.detail}</small></div>`).join('')}`;
+      document.getElementById('mode').textContent = `Données calculées par le pipeline · dernier lot ${data.lineage.run_at.slice(0, 19).replace('T', ' ')}.`;
     }
-    async function loadMetrics() { return fetch('/api/metrics')
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then(render)
+    async function loadMetrics() { return Promise.all([fetch('/api/metrics'), fetch('/api/quality')])
+      .then(async ([metrics, quality]) => metrics.ok && quality.ok ? [await metrics.json(), await quality.json()] : Promise.reject())
+      .then(([metrics, quality]) => render(metrics, quality))
       .catch(() => {
         document.getElementById('mode').textContent = 'Le service est temporairement indisponible. Réessaie dans un instant.';
       }); }

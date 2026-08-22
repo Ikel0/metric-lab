@@ -7,7 +7,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from pipeline import build, metrics
+from pipeline import build, load_sources, metrics, quality_report
 from server import market_context
 
 
@@ -21,6 +21,16 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(result["orders"], 6)
         self.assertEqual(report["summary"]["revenue"], 965.0)
         self.assertEqual(len(report["daily"]), 3)
+        self.assertEqual(report["lineage"]["quality_status"], "passed")
+
+    def test_quality_gate_detects_a_broken_foreign_key(self):
+        sources = load_sources()
+        sources["orders"][0]["customer_id"] = "UNKNOWN"
+        report = quality_report(sources)
+
+        failed = {check["name"] for check in report["checks"] if check["status"] == "failed"}
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("order_customer_fk", failed)
 
     def test_market_context_returns_public_rates(self):
         class Response:
