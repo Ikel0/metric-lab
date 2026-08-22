@@ -17,6 +17,9 @@ Ouvrir `http://127.0.0.1:8000`. La première exécution construit la base locale
 - table de métriques quotidiennes ;
 - API légère et dashboard local ;
 - tests de cohérence sur le pipeline.
+- contexte de marché optionnel avec les derniers taux EUR publiés par Frankfurter à partir de la BCE.
+
+Les ventes et commandes du mini-entrepôt sont synthétiques et servent à tester le modèle. Le contexte de marché est distinct : `GET /api/market-context` interroge une source publique sans clé, identifiée par un en-tête applicatif, puis indique clairement si elle est indisponible.
 
 ## Ligne de commande
 
