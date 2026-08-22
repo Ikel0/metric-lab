@@ -3,13 +3,14 @@ import argparse, json, os
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 from pipeline import ROOT, build, metrics
 
 def market_context():
     url = "https://api.frankfurter.dev/v2/rates?base=EUR&quotes=USD,GBP,CHF&providers=ECB"
     try:
-        with urlopen(url, timeout=5) as response:
+        request = Request(url, headers={"User-Agent": "Ikel-Metric-Lab/1.0 (+https://github.com/Ikel0/metric-lab)"})
+        with urlopen(request, timeout=5) as response:
             rows = json.load(response)
         return {"source": "Frankfurter / ECB", "rates": rows, "live": True}
     except Exception:
