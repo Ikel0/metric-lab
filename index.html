@@ -11,7 +11,7 @@
     <p class="tag">METRIC LAB / ANALYTICS ENGINEERING</p>
     <h1>Des fichiers bruts<br>aux <i>bons indicateurs.</i></h1>
     <p class="intro">Une mini data platform e-commerce : elle ingère des sources, construit un modèle de données et expose les métriques dont une équipe a besoin pour suivre son activité.</p>
-    <p id="mode" class="mode">Chargement des données…</p>
+    <div class="mode-row"><p id="mode" class="mode">Chargement des données…</p><button id="rebuild" type="button">Reconstruire le jeu de démo</button></div>
     <section class="cards" aria-label="Indicateurs clés">
       <div><small>COMMANDES</small><b id="orders">—</b></div>
       <div><small>CHIFFRE D’AFFAIRES</small><b id="revenue">—</b></div>
@@ -21,6 +21,11 @@
       <p class="tag">LE MODÈLE</p>
       <h2>Chaque jour, sans tableur.</h2>
       <div id="daily" class="daily"></div>
+    </section>
+    <section class="categories-section">
+      <p class="tag">LECTURE MÉTIER</p>
+      <h2>Où se crée le chiffre d’affaires.</h2>
+      <div id="categories" class="daily"></div>
     </section>
     <footer>CSV → SQLite → modèle dimensionnel → métriques <a href="https://github.com/Ikel0/metric-lab">Code ↗</a></footer>
   </main>
@@ -34,14 +39,20 @@
       document.getElementById('revenue').textContent = format.format(data.summary.revenue) + ' €';
       document.getElementById('aov').textContent = format.format(data.summary.aov) + ' €';
       document.getElementById('daily').innerHTML = data.daily.map((item) => `<div><span>${item.order_date}</span><b>${format.format(item.revenue)} €</b><small>${item.orders} commandes · panier ${format.format(item.avg_order_value)} €</small></div>`).join('');
+      document.getElementById('categories').innerHTML = data.categories.map((item) => `<div><span>${item.category}</span><b>${format.format(item.revenue)} €</b><small>revenu cumulé par catégorie</small></div>`).join('');
       document.getElementById('mode').textContent = 'Données calculées par le pipeline.';
     }
-    fetch('/api/metrics')
+    async function loadMetrics() { return fetch('/api/metrics')
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then(render)
       .catch(() => {
         document.getElementById('mode').textContent = 'Le service est temporairement indisponible. Réessaie dans un instant.';
-      });
+      }); }
+    document.getElementById('rebuild').addEventListener('click', async () => {
+      const button = document.getElementById('rebuild'); button.disabled = true; button.textContent = 'Reconstruction…';
+      try { await fetch('/api/rebuild', { method: 'POST' }); await loadMetrics(); } finally { button.disabled = false; button.textContent = 'Reconstruire le jeu de démo'; }
+    });
+    loadMetrics();
   </script>
 </body>
 </html>
