@@ -27,6 +27,7 @@
       <h2>Où se crée le chiffre d’affaires.</h2>
       <div id="categories" class="daily"></div>
     </section>
+    <section class="categories-section"><p class="tag">CONTEXTE EXTERNE</p><h2>Les taux de change du jour.</h2><p id="market-context" class="mode">Chargement du contexte marché…</p></section>
     <footer>CSV → SQLite → modèle dimensionnel → métriques <a href="https://github.com/Ikel0/metric-lab">Code ↗</a></footer>
   </main>
   <script>
@@ -53,6 +54,9 @@
       try { await fetch('/api/rebuild', { method: 'POST' }); await loadMetrics(); } finally { button.disabled = false; button.textContent = 'Reconstruire le jeu de démo'; }
     });
     loadMetrics();
+    fetch('/api/market-context').then(response => response.json()).then(data => {
+      document.getElementById('market-context').textContent = data.live ? `${data.source} · ${data.rates.map(rate => `1 EUR = ${rate.rate} ${rate.quote}`).join(' · ')}` : data.message;
+    }).catch(() => { document.getElementById('market-context').textContent = 'Contexte marché indisponible.'; });
   </script>
 </body>
 </html>
