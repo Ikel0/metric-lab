@@ -6,6 +6,7 @@ import csv
 from datetime import UTC, datetime
 import hashlib
 import json
+import math
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -48,7 +49,19 @@ def quality_report(sources: dict[str, list[dict[str, str]]] | None = None) -> di
     for name, columns in EXPECTED_COLUMNS.items():
         actual = set(sources[name][0]) if sources[name] else set()
         missing = sorted(columns - actual)
-        checks.append(_check(f"{name}_schema", not missing, "schema expected" if not missing else f"missing: {', '.join(missing)}"))
+        unexpected = sorted(actual - columns)
+        details = []
+        if missing:
+            details.append(f"missing: {', '.join(missing)}")
+        if unexpected:
+            details.append(f"unexpected: {', '.join(unexpected)}")
+        checks.append(
+            _check(
+                f"{name}_schema",
+                not details,
+                "schema expected" if not details else "; ".join(details),
+            )
+        )
 
     customers, products, orders = sources["customers"], sources["products"], sources["orders"]
     customer_ids = [row.get("customer_id", "") for row in customers]
@@ -64,7 +77,13 @@ def quality_report(sources: dict[str, list[dict[str, str]]] | None = None) -> di
         ]
     )
     try:
-        checks.append(_check("product_price_positive", all(float(row["unit_price"]) > 0 for row in products), "unit prices are positive"))
+        checks.append(
+            _check(
+                "product_price_positive",
+                all(math.isfinite(float(row["unit_price"])) and float(row["unit_price"]) > 0 for row in products),
+                "unit prices are finite and positive",
+            )
+        )
     except (KeyError, ValueError):
         checks.append(_check("product_price_positive", False, "unit prices are numeric and positive"))
     try:

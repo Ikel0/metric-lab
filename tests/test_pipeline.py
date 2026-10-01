@@ -32,6 +32,15 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(report["status"], "failed")
         self.assertIn("order_customer_fk", failed)
 
+    def test_quality_gate_rejects_an_unexpected_source_column(self):
+        sources = load_sources()
+        sources["orders"][0]["debug_only"] = "unexpected"
+        report = quality_report(sources)
+
+        failed = {check["name"] for check in report["checks"] if check["status"] == "failed"}
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("orders_schema", failed)
+
     def test_market_context_returns_public_rates(self):
         class Response:
             def __enter__(self): return self
