@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from pipeline import build, load_sources, metrics, quality_report
-from server import market_context
+from server import market_context, rejection_demo
 
 
 class PipelineTest(unittest.TestCase):
@@ -52,7 +52,15 @@ class PipelineTest(unittest.TestCase):
 
         self.assertTrue(context["live"])
         self.assertEqual(context["rates"][0]["quote"], "USD")
+        self.assertEqual(context["as_of"], "2026-08-21")
+        self.assertEqual(context["source_url"], "https://frankfurter.dev/")
         self.assertEqual(mocked.call_args.args[0].get_header("User-agent"), "Ikel-Metric-Lab/1.0 (+https://github.com/Ikel0/metric-lab)")
+
+    def test_rejection_demo_fails_without_touching_the_mart(self):
+        report = rejection_demo()
+        failed = {check["name"] for check in report["checks"] if check["status"] == "failed"}
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("orders_schema", failed)
 
 
 if __name__ == "__main__":

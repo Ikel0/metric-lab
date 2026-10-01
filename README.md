@@ -2,6 +2,12 @@
 
 Un pipeline e-commerce de démonstration : trois fichiers sources, un quality gate, un modèle dimensionnel SQLite et des métriques inspectables.
 
+## Test en moins d’une minute
+
+Lance l’application, puis ouvre `http://localhost:8000`. **Tester un lot invalide** ajoute une colonne hors contrat en mémoire, affiche le contrôle en échec et ne touche pas au mart existant. **Reconstruire le lot valide** rejoue ensuite le pipeline complet à partir des trois CSV locaux.
+
+Le contexte Frankfurter / BCE est optionnel et séparé des métriques e-commerce. L’interface affiche la date de valeur et un lien vers la source. S’il est indisponible, le quality gate, le mart et les métriques locales continuent de fonctionner.
+
 ## Lancer
 
 ```bash

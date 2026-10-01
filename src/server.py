@@ -4,17 +4,31 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.request import Request, urlopen
-from pipeline import ROOT, SourceValidationError, build, metrics, quality_report
+from pipeline import ROOT, SourceValidationError, build, load_sources, metrics, quality_report
+
+MARKET_URL = "https://api.frankfurter.dev/v2/providers/ecb/rates?base=EUR&quotes=USD,GBP,CHF"
+MARKET_DOCUMENTATION = "https://frankfurter.dev/"
+
+
+def rejection_demo():
+    """Return a failed quality report without touching the existing warehouse."""
+    sources = load_sources()
+    sources["orders"][0]["unexpected_column"] = "not-in-orders-contract"
+    return quality_report(sources)
 
 def market_context():
-    url = "https://api.frankfurter.dev/v2/rates?base=EUR&quotes=USD,GBP,CHF&providers=ECB"
     try:
-        request = Request(url, headers={"User-Agent": "Ikel-Metric-Lab/1.0 (+https://github.com/Ikel0/metric-lab)"})
+        request = Request(MARKET_URL, headers={"User-Agent": "Ikel-Metric-Lab/1.0 (+https://github.com/Ikel0/metric-lab)"})
         with urlopen(request, timeout=5) as response:
             rows = json.load(response)
-        return {"source": "Frankfurter / ECB", "rates": rows, "live": True}
-    except Exception:
-        return {"source": "Frankfurter / ECB", "rates": [], "live": False, "message": "Contexte externe momentanément indisponible."}
+        if not isinstance(rows, list) or not rows:
+            raise ValueError("empty rates payload")
+        for row in rows:
+            if not {"date", "base", "quote", "rate"}.issubset(row):
+                raise ValueError("invalid rates payload")
+        return {"source": "Frankfurter / ECB", "source_url": MARKET_DOCUMENTATION, "as_of": max(row["date"] for row in rows), "rates": rows, "live": True}
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return {"source": "Frankfurter / ECB", "source_url": MARKET_DOCUMENTATION, "rates": [], "live": False, "message": "Contexte externe momentanément indisponible. Le pipeline local reste testable."}
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self,*args,**kwargs): super().__init__(*args,directory=str(ROOT),**kwargs)
     def send_json(self, payload, status=HTTPStatus.OK):
@@ -26,6 +40,8 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path=="/api/market-context": return self.send_json(market_context())
         super().do_GET()
     def do_POST(self):
+        if self.path == "/api/demo-rejection":
+            return self.send_json({"status":"rejected", "quality":rejection_demo()})
         if self.path == "/api/rebuild":
             try:
                 return self.send_json({"status":"rebuilt", **build()}, HTTPStatus.CREATED)
