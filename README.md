@@ -1,6 +1,6 @@
 # Metric Lab
 
-Une mini data platform e-commerce, de l’ingestion au dashboard : fichiers sources, modèle dimensionnel SQLite et métriques de pilotage.
+Un pipeline e-commerce de démonstration : trois fichiers sources, un quality gate, un modèle dimensionnel SQLite et des métriques inspectables.
 
 ## Lancer
 
