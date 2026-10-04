@@ -2,6 +2,10 @@
 
 Un pipeline e-commerce de démonstration : trois fichiers sources, un quality gate, un modèle dimensionnel SQLite et des métriques inspectables.
 
+![Page de démonstration de Metric Lab](docs/demo.png)
+
+La capture montre le quality gate du lot accepté (11 contrôles sur les trois CSV), puis les métriques calculées sur `fact_orders`. Démo : https://metric-lab-ikel.onrender.com
+
 ## Test en moins d’une minute
 
 Lance l’application, puis ouvre `http://localhost:8000`. **Tester un lot invalide** ajoute une colonne hors contrat en mémoire, affiche le contrôle en échec et ne touche pas au mart existant. **Reconstruire le lot valide** rejoue ensuite le pipeline complet à partir des trois CSV locaux.
@@ -22,7 +26,7 @@ Ouvrir `http://127.0.0.1:8000`. La première exécution construit la base locale
 - modèle `fact_orders` + dimensions clients et produits ;
 - table de métriques quotidiennes ;
 - API légère et dashboard local ;
-- tests de cohérence sur le pipeline.
+- tests de cohérence sur le pipeline ;
 - contexte de marché optionnel avec les derniers taux EUR publiés par Frankfurter à partir de la BCE.
 
 ## Ce qui rend le pipeline utilisable
@@ -39,3 +43,8 @@ La qualité du lot est disponible via `GET /api/quality`. `POST /api/rebuild` ne
 python3 src/pipeline.py
 python3 -m unittest discover -s tests
 ```
+
+## Limites
+
+Les commandes, clients et produits sont synthétiques (6 commandes) : les chiffres servent à tester le modèle, pas à décrire une activité réelle.
+L’entrepôt est un fichier SQLite local écrit par un seul processus serveur, sans verrou applicatif entre deux reconstructions simultanées.
