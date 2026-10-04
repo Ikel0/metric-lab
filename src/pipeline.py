@@ -52,14 +52,14 @@ def quality_report(sources: dict[str, list[dict[str, str]]] | None = None) -> di
         unexpected = sorted(actual - columns)
         details = []
         if missing:
-            details.append(f"missing: {', '.join(missing)}")
+            details.append(f"colonnes manquantes : {', '.join(missing)}")
         if unexpected:
-            details.append(f"unexpected: {', '.join(unexpected)}")
+            details.append(f"colonnes hors contrat : {', '.join(unexpected)}")
         checks.append(
             _check(
                 f"{name}_schema",
                 not details,
-                "schema expected" if not details else "; ".join(details),
+                "colonnes conformes au contrat" if not details else "; ".join(details),
             )
         )
 
@@ -69,11 +69,11 @@ def quality_report(sources: dict[str, list[dict[str, str]]] | None = None) -> di
     order_ids = [row.get("order_id", "") for row in orders]
     checks.extend(
         [
-            _check("customer_id_unique", len(customer_ids) == len(set(customer_ids)), "customer identifiers are unique"),
-            _check("product_id_unique", len(product_ids) == len(set(product_ids)), "product identifiers are unique"),
-            _check("order_id_unique", len(order_ids) == len(set(order_ids)), "order identifiers are unique"),
-            _check("order_customer_fk", all(row.get("customer_id") in set(customer_ids) for row in orders), "all orders reference a known customer"),
-            _check("order_product_fk", all(row.get("product_id") in set(product_ids) for row in orders), "all orders reference a known product"),
+            _check("customer_id_unique", len(customer_ids) == len(set(customer_ids)), "identifiants clients uniques"),
+            _check("product_id_unique", len(product_ids) == len(set(product_ids)), "identifiants produits uniques"),
+            _check("order_id_unique", len(order_ids) == len(set(order_ids)), "identifiants de commandes uniques"),
+            _check("order_customer_fk", all(row.get("customer_id") in set(customer_ids) for row in orders), "chaque commande référence un client connu"),
+            _check("order_product_fk", all(row.get("product_id") in set(product_ids) for row in orders), "chaque commande référence un produit connu"),
         ]
     )
     try:
@@ -81,21 +81,21 @@ def quality_report(sources: dict[str, list[dict[str, str]]] | None = None) -> di
             _check(
                 "product_price_positive",
                 all(math.isfinite(float(row["unit_price"])) and float(row["unit_price"]) > 0 for row in products),
-                "unit prices are finite and positive",
+                "prix unitaires numériques et positifs",
             )
         )
     except (KeyError, ValueError):
-        checks.append(_check("product_price_positive", False, "unit prices are numeric and positive"))
+        checks.append(_check("product_price_positive", False, "prix unitaires numériques et positifs"))
     try:
-        checks.append(_check("order_quantity_positive", all(int(row["quantity"]) > 0 for row in orders), "quantities are positive integers"))
+        checks.append(_check("order_quantity_positive", all(int(row["quantity"]) > 0 for row in orders), "quantités entières et positives"))
     except (KeyError, ValueError):
-        checks.append(_check("order_quantity_positive", False, "quantities are positive integers"))
+        checks.append(_check("order_quantity_positive", False, "quantités entières et positives"))
     try:
         for row in orders:
             datetime.strptime(row["order_date"], "%Y-%m-%d")
-        checks.append(_check("order_date_iso", True, "order dates use YYYY-MM-DD"))
+        checks.append(_check("order_date_iso", True, "dates au format AAAA-MM-JJ"))
     except (KeyError, ValueError):
-        checks.append(_check("order_date_iso", False, "order dates use YYYY-MM-DD"))
+        checks.append(_check("order_date_iso", False, "dates au format AAAA-MM-JJ"))
 
     fingerprint = hashlib.sha256(json.dumps(sources, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
     return {
